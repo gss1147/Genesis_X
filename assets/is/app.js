@@ -4,7 +4,7 @@
   const clean = (s) => String(s ?? "").trim();
   const byId = (id) => document.getElementById(id);
 
-  // Edit these values to match your deployment
+  // ====== CONFIG (edit these once when you deploy) ======
   const CONFIG = Object.freeze({
     name: "Genesis-X: GPU-Free LLM Injection",
     tagline: "Instant, permanent LLM knowledge injection on CPU via analytic steering (framework + architecture).",
@@ -13,6 +13,9 @@
     notificationMs: 3000
   });
 
+  // Determine a share URL:
+  // - If hosted (http/https): use actual page URL
+  // - If local file://: use canonicalUrl (stable, valid for share endpoints)
   const shareUrl = (() => {
     const proto = (location && location.protocol) ? String(location.protocol) : "";
     if (proto === "http:" || proto === "https:") return clean(window.location.href);
@@ -26,6 +29,7 @@
     githubRepo: clean(CONFIG.githubRepo)
   });
 
+  // ====== Notifications ======
   const notifier = (() => {
     const el = byId("notification");
     let t = null;
@@ -44,12 +48,15 @@
     return { show };
   })();
 
+  // ====== URL utils ======
   const encode = (s) => encodeURIComponent(String(s ?? ""));
-
-  const safeNavigate = (url) => {
+  const safeNewTab = (url) => {
     const target = clean(url);
+
+    // Attempt popup first
     const w = window.open(target, "_blank", "noopener,noreferrer");
 
+    // Popup blockers (especially iOS) often prevent open; fall back to same-tab navigation
     if (!w) {
       try {
         window.location.href = target;
@@ -58,14 +65,18 @@
         return false;
       }
     }
+
+    // Defense-in-depth
     try { w.opener = null; } catch {}
     return true;
   };
 
+  // ====== Clipboard ======
   async function copyToClipboard(text) {
     const warn = "rgba(245, 158, 11, 0.92)";
     const value = clean(text);
 
+    // Clipboard generally requires secure contexts (https)
     if (!window.isSecureContext || !navigator.clipboard?.writeText) {
       notifier.show("Clipboard not available here. Copy the URL from the address bar.", warn);
       return false;
@@ -80,6 +91,7 @@
     }
   }
 
+  // ====== Native Share (best UX on mobile) ======
   async function tryNativeShare() {
     if (!navigator.share) return false;
     try {
@@ -91,36 +103,40 @@
       notifier.show("Opened system share sheet.", "rgba(59, 130, 246, 0.92)");
       return true;
     } catch {
+      // user canceled or failed; treat as not handled
       return false;
     }
   }
 
+  // ====== Share actions ======
   function shareX() {
     const text = `${PROJECT.name} — ${PROJECT.tagline}`;
+    // Try X first, then fallback to Twitter for compatibility
     const xUrl = `https://x.com/intent/post?text=${encode(text)}&url=${encode(PROJECT.url)}`;
     const twUrl = `https://twitter.com/intent/tweet?text=${encode(text)}&url=${encode(PROJECT.url)}`;
 
-    const ok = safeNavigate(xUrl);
-    if (!ok) safeNavigate(twUrl);
+    // Try X intent first; if blocked or fails navigation, try twitter intent
+    const ok = safeNewTab(xUrl);
+    if (!ok) safeNewTab(twUrl);
 
     notifier.show("Opened share composer.", "rgba(59, 130, 246, 0.92)");
   }
 
   function shareLinkedIn() {
     const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encode(PROJECT.url)}`;
-    safeNavigate(url) ? notifier.show("Opened LinkedIn share dialog.", "rgba(59, 130, 246, 0.92)")
-                      : notifier.show("Share blocked. Try Copy Link.", "rgba(245, 158, 11, 0.92)");
+    safeNewTab(url) ? notifier.show("Opened LinkedIn share dialog.", "rgba(59, 130, 246, 0.92)")
+                    : notifier.show("Share blocked. Try Copy Link.", "rgba(245, 158, 11, 0.92)");
   }
 
   function shareReddit() {
     const url = `https://www.reddit.com/submit?url=${encode(PROJECT.url)}&title=${encode(PROJECT.name)}`;
-    safeNavigate(url) ? notifier.show("Opened Reddit submission page.", "rgba(59, 130, 246, 0.92)")
-                      : notifier.show("Share blocked. Try Copy Link.", "rgba(245, 158, 11, 0.92)");
+    safeNewTab(url) ? notifier.show("Opened Reddit submission page.", "rgba(59, 130, 246, 0.92)")
+                    : notifier.show("Share blocked. Try Copy Link.", "rgba(245, 158, 11, 0.92)");
   }
 
   function openGitHub() {
-    safeNavigate(PROJECT.githubRepo) ? notifier.show("Opened GitHub repository.", "rgba(59, 130, 246, 0.92)")
-                                     : notifier.show("Popup blocked. Copy the link instead.", "rgba(245, 158, 11, 0.92)");
+    safeNewTab(PROJECT.githubRepo) ? notifier.show("Opened GitHub repository.", "rgba(59, 130, 246, 0.92)")
+                                   : notifier.show("Popup blocked. Copy the link instead.", "rgba(245, 158, 11, 0.92)");
   }
 
   function buildArchitecturePacketMarkdown() {
@@ -179,6 +195,7 @@ Generated from the Genesis-X landing page.
     }
   }
 
+  // ====== Central dispatcher (event delegation) ======
   async function handleAction(action, targetButton) {
     switch (action) {
       case "share-x":
@@ -213,11 +230,13 @@ Generated from the Genesis-X landing page.
     }
   }
 
+  // ====== Init ======
   document.addEventListener("click", async (ev) => {
     const el = ev.target.closest("[data-action]");
     if (!el) return;
     const action = el.getAttribute("data-action");
     if (!action) return;
+
     ev.preventDefault();
     await handleAction(action, el);
   });
