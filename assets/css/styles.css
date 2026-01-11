@@ -289,6 +289,7 @@ h1{
   margin:1rem 0;
   overflow-x:auto;
   border:1px solid rgba(255,255,255,.06);
+  white-space: pre-wrap; /* IMPORTANT: preserves your newlines in <div class="code-block"> */
 }
 
 .window-layout{
@@ -355,7 +356,7 @@ h1{
   gap:.5rem;
   box-shadow:0 4px 15px rgba(139,92,246,.30);
   user-select:none;
-  min-height:44px;
+  min-height:44px; /* mobile tap target */
 }
 .btn:hover{
   transform:scale(1.03);
@@ -430,22 +431,6 @@ footer{
   border-top:1px solid rgba(255,255,255,.1);
   margin-top:2rem;
   line-height:1.6;
-}
-
-.skip-link{
-  position:absolute;
-  left:-9999px;
-  top:0;
-  background:rgba(15,23,42,.95);
-  color:var(--light);
-  padding:.6rem .9rem;
-  border-radius: 10px;
-  z-index: 2000;
-  border: 1px solid rgba(255,255,255,.12);
-}
-.skip-link:focus{
-  left: 16px;
-  top: 16px;
 }
 
 @media (max-width: 900px){
