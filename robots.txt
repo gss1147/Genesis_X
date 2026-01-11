@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://gss1147.github.io/Genesis_X/sitemap.xml
